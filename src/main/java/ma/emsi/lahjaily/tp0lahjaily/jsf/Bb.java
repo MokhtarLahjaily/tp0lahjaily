@@ -107,9 +107,7 @@ public class Bb implements Serializable {
 
     /**
      * Envoie la question au serveur.
-     * En attendant de l'envoyer à un LLM, le serveur fait un traitement quelconque, juste pour tester :
-     * Le traitement consiste à copier la question en minuscules et à l'entourer avec "||". Le rôle système
-     * est ajouté au début de la première réponse.
+     * Traitement personnel : analyse de tokens.
      *
      * @return null pour rester sur la même page.
      */
@@ -121,17 +119,30 @@ public class Bb implements Serializable {
             facesContext.addMessage(null, message);
             return null;
         }
-        // Entourer la réponse avec "||".
-        this.reponse = "||";
-        // Si la conversation n'a pas encore commencé, ajouter le rôle système au début de la réponse
+
+        // Tokenisation avancée
+        String[] tokens = question.trim().split("[\\s.,;:!?'\"()\\{\\}\\[\\]]+|(?<=\\p{L})(?=\\p{P})|(?<=\\p{P})(?=\\p{L})");
+        // Filtrer les tokens vides
+        List<String> mots = new ArrayList<>();
+        for (String token : tokens) {
+            if (!token.trim().isEmpty()) {
+                mots.add(token.trim());
+            }
+        }
+
+        // Générer la réponse
+        this.reponse = "Analyse des tokens :\n";
+        this.reponse += "- Nombre de tokens : " + mots.size() + "\n";
+        this.reponse += "- Tokens uniques : " + mots.stream().distinct().count() + "\n";
+        this.reponse += "- Liste des tokens : " + String.join(", ", mots);
+
+        // Si c'est le début de la conversation, ajouter le rôle système
         if (this.conversation.isEmpty()) {
-            // Ajouter le rôle système au début de la réponse
-            this.reponse += roleSysteme.toUpperCase(Locale.FRENCH) + "\n";
-            // Invalide le bouton pour changer le rôle système
+            this.reponse = roleSysteme.toUpperCase(Locale.FRENCH) + "\n" + this.reponse;
             this.roleSystemeChangeable = false;
         }
-        this.reponse += question.toLowerCase(Locale.FRENCH) + "||";
-        // La conversation contient l'historique des questions-réponses depuis le début.
+
+        // Mettre à jour la conversation
         afficherConversation();
         return null;
     }
